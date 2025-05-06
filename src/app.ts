@@ -3,6 +3,7 @@ import cors from "cors";
 import { taskRoutes } from "./api/routes/taskRoutes";
 import { NotificationObserver } from "./services/observers/notificationObserver";
 import { EmailObserver } from "./services/observers/emailObserver";
+import { authRoutes } from "./api/routes/authRoutes";
 
 export const app = express();
 
@@ -14,7 +15,10 @@ app.use(cors());
 app.use(express.json());
 
 // Routes
-app.use('/api/tasks', taskRoutes);
+app.use('/api/v1', authRoutes);
+// TODO: app.use('/api/v1/users', userRoutes);
+// TODO: app.use('/api/v1/projects', projectRoutes);
+app.use('/api/v1/tasks', taskRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

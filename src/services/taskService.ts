@@ -1,6 +1,6 @@
 import { Priority, Status } from "@prisma/client";
 import { Task } from "../domain/entities/task";
-import { ITaskRepository } from "../infrastructure/repositories/ITaskRespository";
+import { ITaskRepository } from "../infrastructure/repositories/ITaskRepository";
 import { TaskRepository } from "../infrastructure/repositories/taskRepository";
 import { EventBus } from "./observers/eventBus";
 import { TaskCreationAttributes, TaskFactoryCreator } from "../domain/factories/taskFactory";

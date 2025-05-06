@@ -6,6 +6,7 @@ import { NotificationObserver } from "./services/observers/notificationObserver"
 import { EmailObserver } from "./services/observers/emailObserver";
 import { authRoutes } from "./api/routes/authRoutes";
 import { userRoutes } from "./api/routes/userRoutes";
+import { projectRoutes } from "./api/routes/projectRoutes";
 
 export const app = express();
 
@@ -20,7 +21,7 @@ app.use(express.json());
 // Routes
 app.use('/api/v1', authRoutes);
 app.use('/api/v1/users', userRoutes);
-// TODO: app.use('/api/v1/projects', projectRoutes);
+app.use('/api/v1/projects', projectRoutes);
 app.use('/api/v1/tasks', taskRoutes);
 
 // Health check endpoint

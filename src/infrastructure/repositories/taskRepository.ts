@@ -1,6 +1,6 @@
 import { PrismaClient, Task as PrismaTask } from "@prisma/client";
 import { Task } from "../../domain/entities/task";
-import { ITaskRepository } from "./ITaskRespository";
+import { ITaskRepository } from "./ITaskRepository";
 import db from "../database/prisma";
 
 export class TaskRepository implements ITaskRepository {

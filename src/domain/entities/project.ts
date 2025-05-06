@@ -6,3 +6,9 @@ export interface Project {
     updatedAt: Date;
     ownerId: string;
 }
+
+export interface ProjectDTO {
+    name: string;
+    description: string;
+    ownerId: string;
+}

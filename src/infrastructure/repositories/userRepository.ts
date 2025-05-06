@@ -72,6 +72,24 @@ export class UserRepository implements IUserRepository {
         });
     }
 
+    async deleteWithCleanup(id: string): Promise<void> {
+        // Remove user assignments from tasks
+        await this.prisma.task.updateMany({
+            where: { assignedToId: id },
+            data: { assignedToId: null }
+        });
+
+        // Delete all projects owned by the user
+        await this.prisma.project.deleteMany({
+            where: { ownerId: id }
+        });
+
+        // Delete the user
+        await this.prisma.user.delete({
+            where: { id }
+        });
+    }
+
     private mapToEntity(user: PrismaUser): User {
         return {
             id: user.id,

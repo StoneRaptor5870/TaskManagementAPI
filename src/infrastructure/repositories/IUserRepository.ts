@@ -8,4 +8,5 @@ export interface IUserRepository {
     update(id: string, user: Partial<User>): Promise<User>;
     updateRefreshToken(userId: string, refreshToken: string | null): Promise<User>;
     delete(id: string): Promise<void>;
+    deleteWithCleanup(id: string): Promise<void>;
 }

@@ -16,7 +16,7 @@ export class AuthService {
 
     async register(userData: RegisterUserDto): Promise<AuthTokens> {
         const existingUser = await this.userRepository.findByEmail(userData.email);
-        if (!existingUser) {
+        if (existingUser) {
             throw new Error('User already exists with this email');
         }
 

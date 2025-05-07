@@ -25,7 +25,8 @@ router.get('/:id', taskController.getTaskById);
 
 // Routes accessible by managers and admins
 router.post('/', 
-  authMiddleware.authorize([Role.MANAGER, Role.ADMIN]), 
+  authMiddleware.authenticate,
+  authMiddleware.authorize([Role.USER, Role.ADMIN]), 
   taskController.createTask
 );
 

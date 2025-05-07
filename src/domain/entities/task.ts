@@ -11,8 +11,8 @@ export interface Task {
     dueDate: Date;
     createdAt: Date;
     updatedAt: Date;
-    projectId?: string;
+    projectId: string;
     project?: Project;
-    assignedToId?: string;
+    assignedToId: string | null;
     assignedTo?: User;
 }

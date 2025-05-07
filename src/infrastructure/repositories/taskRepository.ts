@@ -31,7 +31,7 @@ export class TaskRepository implements ITaskRepository {
         return task ? this.mapToEntity(task) : null;
     }
 
-    async create(task: Omit<Task, "id" | "createdAt" | "updatedAt" | "projectId">): Promise<Task> {
+    async create(task: Omit<Task, "id" | "createdAt" | "updatedAt">): Promise<Task> {
         const newTask = await this.prisma.task.create({
             data: {
                 title: task.title,
@@ -39,8 +39,8 @@ export class TaskRepository implements ITaskRepository {
                 status: task.status,
                 priority: task.priority,
                 dueDate: task.dueDate,
-                // projectId: task.projectId,
-                // assignedToId: task.assignedToId || null,
+                projectId: task.projectId,
+                assignedToId: task.assignedToId
             },
             include: {
                 assignedTo: true,
@@ -60,7 +60,7 @@ export class TaskRepository implements ITaskRepository {
                 priority: task.priority,
                 dueDate: task.dueDate,
                 projectId: task.projectId,
-                // assignedToId: task.assignedToId,
+                assignedToId: task.assignedToId,
             },
             include: {
                 assignedTo: true,
@@ -76,7 +76,7 @@ export class TaskRepository implements ITaskRepository {
         });
     }
 
-    private mapToEntity(task: PrismaTask & { assignedTo?: any; project?: any }): Task {
+    private mapToEntity(task: PrismaTask & {project: any, assignedTo: any} ): Task {
         return {
             id: task.id,
             title: task.title,
@@ -86,10 +86,10 @@ export class TaskRepository implements ITaskRepository {
             dueDate: task.dueDate || new Date(task.createdAt.getTime() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
             createdAt: task.createdAt,
             updatedAt: task.updatedAt,
-            // projectId: task.projectId,
-            // assignedToId: task.assignedToId || '',
-            // assignedTo: task.assignedTo,
-            // project: task.project,
+            projectId: task.projectId,
+            assignedToId: task.assignedToId || null,
+            assignedTo: task.assignedTo,
+            project: task.project
         };
     }
 }

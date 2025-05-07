@@ -17,7 +17,7 @@ export class ProjectRepository implements IProjectRepository {
                 tasks: true,
             },
         });
-        return project.map(this.mapToEntity);
+        return project;
     }
 
     async findById(id: string): Promise<Project | null> {

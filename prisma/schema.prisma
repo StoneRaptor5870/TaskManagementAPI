@@ -31,7 +31,7 @@ model Project {
   updatedAt   DateTime @updatedAt
   ownerId     String
   owner       User     @relation("ProjectOwner", fields: [ownerId], references: [id])
-  tasks       Task[]
+  tasks       Task[]   @relation("ProjectTasks")
 
   @@map("projects")
 }
@@ -45,10 +45,10 @@ model Task {
   dueDate      DateTime
   createdAt    DateTime  @default(now())
   updatedAt    DateTime  @updatedAt
-  projectId    String?
-  project      Project?   @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  projectId    String
+  project      Project   @relation("ProjectTasks", fields: [projectId], references: [id], onDelete: Cascade)
   assignedToId String?
-  assignedTo   User?     @relation("AssignedTasks", fields: [assignedToId], references: [id])
+  assignedTo   User?    @relation("AssignedTasks", fields: [assignedToId], references: [id])
 
   @@map("tasks")
 }

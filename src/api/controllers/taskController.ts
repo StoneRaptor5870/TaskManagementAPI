@@ -36,15 +36,15 @@ export class TaskController {
 
     createTask = async (req: Request, res: Response): Promise<void> => {
         try {
-            const { title, description, dueDate, priority, status } = req.body;
+            const { title, description, dueDate, priority, status, projectId, assignedToId } = req.body;
 
             const task = await this.taskService.createTask(
                 {
                     title,
                     description,
                     status,
-                    // projectId,
-                    // assignedToId,
+                    projectId,
+                    assignedToId: assignedToId || null,
                     dueDate: dueDate ? new Date(dueDate) : undefined,
                 },
                 priority || Priority.MEDIUM

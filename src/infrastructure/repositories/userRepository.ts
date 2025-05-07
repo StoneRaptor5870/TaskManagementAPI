@@ -74,9 +74,8 @@ export class UserRepository implements IUserRepository {
 
     async deleteWithCleanup(id: string): Promise<void> {
         // Remove user assignments from tasks
-        await this.prisma.task.updateMany({
-            where: { assignedToId: id },
-            data: { assignedToId: null }
+        await this.prisma.task.deleteMany({
+            where: { assignedToId: id }
         });
 
         // Delete all projects owned by the user

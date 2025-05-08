@@ -97,6 +97,7 @@ export class UserRepository implements IUserRepository {
             password: user.password,
             role: user.role,
             refreshToken: user.refreshToken || undefined,
+            tenantId: user.tenantId || undefined,
             createdAt: user.createdAt,
             updatedAt: user.updatedAt,
         };

@@ -22,6 +22,7 @@ export class UserController {
                 name: user.name,
                 email: user.email,
                 role: user.role,
+                tenantId: user.tenantId,
                 createdAt: user.createdAt,
                 updatedAt: user.updatedAt
             }));
@@ -51,6 +52,7 @@ export class UserController {
                 name: user.name,
                 email: user.email,
                 role: user.role,
+                tenantId: user.tenantId,
                 createdAt: user.createdAt,
                 updatedAt: user.updatedAt
             };
@@ -105,6 +107,7 @@ export class UserController {
                 email: updatedUser!.email,
                 role: updatedUser!.role,
                 createdAt: updatedUser!.createdAt,
+                tenantId: updatedUser!.tenantId,
                 updatedAt: updatedUser!.updatedAt
             };
 
@@ -149,7 +152,6 @@ export class UserController {
         try {
             // Get user ID from token
             const userId = (req as Request).user?.userId;
-            console.log(userId)
 
             if (!userId) {
                 res.status(401).json({ message: 'Not authenticated' });
@@ -168,6 +170,7 @@ export class UserController {
                 name: user.name,
                 email: user.email,
                 role: user.role,
+                tenantId: user.tenantId,
                 createdAt: user.createdAt,
                 updatedAt: user.updatedAt
             };
@@ -226,6 +229,7 @@ export class UserController {
                 name: updatedUser!.name,
                 email: updatedUser!.email,
                 role: updatedUser!.role,
+                tenantId: updatedUser!.tenantId,
                 createdAt: updatedUser!.createdAt,
                 updatedAt: updatedUser!.updatedAt
             };

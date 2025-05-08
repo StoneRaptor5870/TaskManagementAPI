@@ -7,6 +7,9 @@ import { EmailObserver } from "./services/observers/emailObserver";
 import { authRoutes } from "./api/routes/authRoutes";
 import { userRoutes } from "./api/routes/userRoutes";
 import { projectRoutes } from "./api/routes/projectRoutes";
+import { tenantMiddleware } from "./api/middleware/tenant";
+import { clsMiddleware } from "./api/middleware/cls";
+import { authMiddleware } from "./api/middleware/auth";
 
 export const app = express();
 
@@ -18,11 +21,14 @@ app.use(cors());
 app.use(morgan('dev'));
 app.use(express.json());
 
+// CLS middleware
+app.use(clsMiddleware);
+
 // Routes
-app.use('/api/v1', authRoutes);
-app.use('/api/v1/users', userRoutes);
-app.use('/api/v1/projects', projectRoutes);
-app.use('/api/v1/tasks', taskRoutes);
+app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/users', authMiddleware.authenticate, tenantMiddleware.attachTenant, userRoutes);
+app.use('/api/v1/projects', authMiddleware.authenticate, tenantMiddleware.attachTenant, projectRoutes);
+app.use('/api/v1/tasks', authMiddleware.authenticate, tenantMiddleware.attachTenant, taskRoutes);
 
 // Health check endpoint
 app.get('/health', (req, res) => {

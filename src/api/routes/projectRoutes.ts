@@ -19,26 +19,21 @@ const extractProjectOwnership = async (req: any) => {
     return project.ownerId;
 };
 
-
 router.get('/', projectController.getAllProjects);
 router.get('/:id', projectController.getProjectById);
 
 router.post('/',
-    authMiddleware.authenticate,
     authMiddleware.authorize([Role.USER, Role.ADMIN]),
-    // authMiddleware.checkOwnership(extractProjectOwnership),
     projectController.createProject
 );
 
 router.patch('/:id',
-    authMiddleware.authenticate,
     authMiddleware.authorize([Role.USER, Role.ADMIN]),
     authMiddleware.checkOwnership(extractProjectOwnership),
     projectController.updateProject
 );
 
 router.delete('/:id',
-    authMiddleware.authenticate,
     authMiddleware.authorize([Role.USER, Role.ADMIN]),
     authMiddleware.checkOwnership(extractProjectOwnership),
     projectController.deleteProject

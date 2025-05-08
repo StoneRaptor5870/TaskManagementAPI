@@ -7,6 +7,7 @@ export interface User {
   password: string;
   role: Role;
   refreshToken?: string;
+  tenantId?: string;
   createdAt: Date;
   updatedAt: Date;
 }

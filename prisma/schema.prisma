@@ -17,11 +17,24 @@ model User {
   refreshToken  String?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  tenantId      String?
+  tenant        tenant?   @relation("Tenant", fields: [tenantId], references: [id])
   assignedTasks Task[]    @relation("AssignedTasks")
   ownedProjects Project[] @relation("ProjectOwner")
 
   @@map("users")
 }
+
+model tenant {
+  id              String    @id @default(uuid())
+  name            String
+  subdomain       String    @unique
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  users           User[]    @relation("Tenant")
+  projects        Project[] @relation("TenantProjects")
+}
+
 
 model Project {
   id          String   @id @default(uuid())
@@ -30,6 +43,8 @@ model Project {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
   ownerId     String
+  tenantId    String?
+  tenant      tenant?   @relation("TenantProjects", fields: [tenantId], references: [id])
   owner       User     @relation("ProjectOwner", fields: [ownerId], references: [id])
   tasks       Task[]   @relation("ProjectTasks")
 

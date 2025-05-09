@@ -36,6 +36,7 @@ export class UserRepository implements IUserRepository {
                 name: user.name,
                 password: user.password,
                 role: user.role || Role.USER,
+                tenantId: user.tenantId,
                 refreshToken: user.refreshToken,
             },
         });

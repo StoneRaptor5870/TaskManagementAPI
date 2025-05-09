@@ -1,45 +1,62 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
-import { Role } from "@prisma/client";
+import { PrismaClient, Role } from "@prisma/client";
 import { AUTH_CONFIG } from "../config/auth";
 import { IUserRepository } from "../infrastructure/repositories/IUserRepository";
 import { UserRepository } from "../infrastructure/repositories/userRepository";
 import { RegisterUserDto, LoginUserDto, JwtPayload, AuthTokens, DecodedToken } from "../domain/entities/auth";
+import { TenantService } from "./tenantService";
+import db from "../infrastructure/database/prisma";
+import { Tenant } from "../domain/entities/tenant";
 import { StringValue } from 'ms';
 
 export class AuthService {
+    private prisma: PrismaClient;
     private userRepository: IUserRepository;
+    private tenantService: TenantService;
 
     constructor() {
+        this.prisma = db;
         this.userRepository = new UserRepository();
+        this.tenantService = new TenantService();
     }
 
-    async register(userData: RegisterUserDto): Promise<AuthTokens> {
+    async registerWithTenant(
+        userData: RegisterUserDto,
+        tenantData: Omit<Tenant, 'id' | 'createdAt' | 'updatedAt'>
+    ): Promise<{ tenant: Tenant, tokens: AuthTokens }> {
         const existingUser = await this.userRepository.findByEmail(userData.email);
         if (existingUser) {
             throw new Error('User already exists with this email');
         }
 
-        const hashedPassword = await bcrypt.hash(userData.password, AUTH_CONFIG.SALT_ROUNDS);
+        // A transation for tenant and user creation
+        return await this.prisma.$transaction(async (tx) => {
+            // Create tenant within transaction
+            const tenant = await this.tenantService.createTenant(tenantData, tx);
 
-        const user = await this.userRepository.create({
-            email: userData.email,
-            password: hashedPassword,
-            name: userData.name,
-            role: userData.role || Role.USER,
-            tenantId: userData.tenantId
+            const hashedPassword = await bcrypt.hash(userData.password, AUTH_CONFIG.SALT_ROUNDS);
+
+            // Create user with tenant ID within the same transaction
+            const user = await this.userRepository.create({
+                email: userData.email,
+                password: hashedPassword,
+                name: userData.name,
+                role: userData.role || Role.USER,
+                tenantId: tenant.id
+            }, tx);
+
+            // Generate tokens
+            const tokens = this.generateTokens({
+                userId: user.id,
+                email: user.email,
+                role: user.role
+            });
+
+            await this.userRepository.updateRefreshToken(user.id, tokens.refreshToken, tx);
+            
+            return { tenant, tokens };
         });
-
-        const tokens = this.generateTokens({
-            userId: user.id,
-            email: user.email,
-            role: user.role
-        });
-
-        // Save refresh token
-        await this.userRepository.updateRefreshToken(user.id, tokens.refreshToken);
-
-        return tokens;
     }
 
     async login(loginData: LoginUserDto): Promise<AuthTokens> {

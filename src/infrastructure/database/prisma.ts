@@ -54,7 +54,7 @@ export function getCurrentTenantId(): string | undefined {
 }
 
 // Models that don't have tenant isolation
-const NON_TENANT_MODELS = ['Tenant'];
+const NON_TENANT_MODELS = ['tenant'];
 
 // Middleware to automatically add tenantId to queries
 db.$use(async (params, next) => {

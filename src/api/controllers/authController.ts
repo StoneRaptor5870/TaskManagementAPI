@@ -2,16 +2,13 @@ import { Request, Response } from 'express';
 import { AuthService } from '../../services/authService';
 import { RegisterUserDto, LoginUserDto } from '../../domain/entities/auth';
 import { RegisterSchema, LoginSchema, RefreshTokenSchema, TenantSchema } from '../../utils/zodSchemas';
-import { TenantService } from '../../services/tenant.service';
 import { Tenant } from '../../domain/entities/tenant';
 
 export class AuthController {
     private authService: AuthService;
-    private tenantService: TenantService
 
     constructor() {
         this.authService = new AuthService();
-        this.tenantService = new TenantService();
     }
 
     register = async (req: Request, res: Response): Promise<void> => {
@@ -39,18 +36,10 @@ export class AuthController {
             }
 
             const tenantData: Omit<Tenant, 'id' | 'createdAt' | 'updatedAt'> = tenantValidation.data;
-            const userData = validationResult.data;
+            const userData: RegisterUserDto = validationResult.data;
 
-            const tenant = await this.tenantService.createTenant(tenantData);
-            const tenantId = tenant.id;
-
-            const newUserData: RegisterUserDto = {
-                ...userData,
-                tenantId,
-            };
-
-            // Register user
-            const tokens = await this.authService.register(newUserData);
+            // Register user with tenant creation in a single transaction
+            const { tenant, tokens } = await this.authService.registerWithTenant(userData, tenantData);
 
             res.status(201).json({ tenant, tokens });
         } catch (error: any) {

@@ -1,4 +1,4 @@
-import { PrismaClient, User as PrismaUser, Role } from "@prisma/client";
+import { PrismaClient, User as PrismaUser, Role, Prisma } from "@prisma/client";
 import { User } from "../../domain/entities/user";
 import { IUserRepository } from "./IUserRepository";
 import db from "../database/prisma";
@@ -29,8 +29,10 @@ export class UserRepository implements IUserRepository {
         return user ? this.mapToEntity(user) : null;
     }
 
-    async create(user: Omit<User, 'id' | 'createdAt' | 'updatedAt'>): Promise<User> {
-        const newUser = await this.prisma.user.create({
+    async create(user: Omit<User, 'id' | 'createdAt' | 'updatedAt'>, tx?: Prisma.TransactionClient): Promise<User> {
+        const client = tx || this.prisma;
+
+        const newUser = await client.user.create({
             data: {
                 email: user.email,
                 name: user.name,
@@ -43,8 +45,10 @@ export class UserRepository implements IUserRepository {
         return this.mapToEntity(newUser);
     }
 
-    async update(id: string, user: Partial<User>): Promise<User> {
-        const updatedUser = await this.prisma.user.update({
+    async update(id: string, user: Partial<User>, tx?: Prisma.TransactionClient): Promise<User> {
+        const client = tx || this.prisma;
+        
+        const updatedUser = await client.user.update({
             where: { id },
             data: {
                 email: user.email,
@@ -57,8 +61,10 @@ export class UserRepository implements IUserRepository {
         return this.mapToEntity(updatedUser);
     }
 
-    async updateRefreshToken(userId: string, refreshToken: string | null): Promise<User> {
-        const updatedUser = await this.prisma.user.update({
+    async updateRefreshToken(userId: string, refreshToken: string | null, tx?: Prisma.TransactionClient): Promise<User> {
+        const client = tx || this.prisma;
+        
+        const updatedUser = await client.user.update({
             where: { id: userId },
             data: {
                 refreshToken,
@@ -74,20 +80,23 @@ export class UserRepository implements IUserRepository {
     }
 
     async deleteWithCleanup(id: string): Promise<void> {
-        // Remove user assignments from tasks
-        await this.prisma.task.deleteMany({
-            where: { assignedToId: id }
-        });
-
-        // Delete all projects owned by the user
-        await this.prisma.project.deleteMany({
-            where: { ownerId: id }
-        });
-
-        // Delete the user
-        await this.prisma.user.delete({
-            where: { id }
-        });
+        await this.prisma.$transaction([
+            // Remove user assignments from tasks
+            this.prisma.task.updateMany({
+                where: { assignedToId: id },
+                data: { assignedToId: null }
+            }),
+            
+            // Delete all projects owned by the user
+            this.prisma.project.deleteMany({
+                where: { ownerId: id }
+            }),
+            
+            // Delete the user
+            this.prisma.user.delete({
+                where: { id }
+            })
+        ]);
     }
 
     private mapToEntity(user: PrismaUser): User {

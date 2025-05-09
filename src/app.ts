@@ -10,6 +10,7 @@ import { projectRoutes } from "./api/routes/projectRoutes";
 import { tenantMiddleware } from "./api/middleware/tenant";
 import { clsMiddleware } from "./api/middleware/cls";
 import { authMiddleware } from "./api/middleware/auth";
+import { tenantRoutes } from "./api/routes/tenantRoutes";
 
 export const app = express();
 
@@ -26,6 +27,7 @@ app.use(clsMiddleware);
 
 // Routes
 app.use('/api/v1/auth', authRoutes);
+app.use('/api/v1/tenant', tenantRoutes);
 app.use('/api/v1/users', authMiddleware.authenticate, tenantMiddleware.attachTenant, userRoutes);
 app.use('/api/v1/projects', authMiddleware.authenticate, tenantMiddleware.attachTenant, projectRoutes);
 app.use('/api/v1/tasks', authMiddleware.authenticate, tenantMiddleware.attachTenant, taskRoutes);

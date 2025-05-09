@@ -26,7 +26,8 @@ export class AuthService {
             email: userData.email,
             password: hashedPassword,
             name: userData.name,
-            role: userData.role || Role.USER
+            role: userData.role || Role.USER,
+            tenantId: userData.tenantId
         });
 
         const tokens = this.generateTokens({

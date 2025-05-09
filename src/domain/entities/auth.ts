@@ -5,6 +5,7 @@ export interface RegisterUserDto {
     password: string;
     name: string;
     role?: Role;
+    tenantId: string
 }
 
 export interface LoginUserDto {

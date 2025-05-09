@@ -27,7 +27,7 @@ model User {
 
 model tenant {
   id              String    @id @default(uuid())
-  name            String
+  companyName     String
   subdomain       String    @unique
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt

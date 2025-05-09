@@ -1,13 +1,17 @@
 import { Request, Response } from 'express';
 import { AuthService } from '../../services/authService';
 import { RegisterUserDto, LoginUserDto } from '../../domain/entities/auth';
-import { RegisterSchema, LoginSchema, RefreshTokenSchema } from '../../utils/zodSchemas';
+import { RegisterSchema, LoginSchema, RefreshTokenSchema, TenantSchema } from '../../utils/zodSchemas';
+import { TenantService } from '../../services/tenant.service';
+import { Tenant } from '../../domain/entities/tenant';
 
 export class AuthController {
     private authService: AuthService;
+    private tenantService: TenantService
 
     constructor() {
         this.authService = new AuthService();
+        this.tenantService = new TenantService();
     }
 
     register = async (req: Request, res: Response): Promise<void> => {
@@ -23,12 +27,32 @@ export class AuthController {
                 return;
             }
 
-            const userData: RegisterUserDto = validationResult.data;
+            const tenantValidation = TenantSchema.safeParse(req.body);
+            if (!tenantValidation.success) {
+                const errorMessages = tenantValidation.error.errors.map(err => ({
+                    field: err.path.join('.'),
+                    message: err.message,
+                }));
+
+                res.status(400).json({ errors: errorMessages });
+                return;
+            }
+
+            const tenantData: Omit<Tenant, 'id' | 'createdAt' | 'updatedAt'> = tenantValidation.data;
+            const userData = validationResult.data;
+
+            const tenant = await this.tenantService.createTenant(tenantData);
+            const tenantId = tenant.id;
+
+            const newUserData: RegisterUserDto = {
+                ...userData,
+                tenantId,
+            };
 
             // Register user
-            const tokens = await this.authService.register(userData);
+            const tokens = await this.authService.register(newUserData);
 
-            res.status(201).json(tokens);
+            res.status(201).json({ tenant, tokens });
         } catch (error: any) {
             if (error.message.includes('already exists')) {
                 res.status(409).json({ message: error.message });

@@ -2,6 +2,8 @@ import bcrypt from "bcrypt";
 import { User } from "../domain/entities/user";
 import { IUserRepository } from "../infrastructure/repositories/IUserRepository";
 import { UserRepository } from "../infrastructure/repositories/userRepository";
+import { AuthTokens, RegisterUserDto } from "../domain/entities/auth";
+import { Prisma } from "@prisma/client";
 
 export class UserService {
     private userRepository: IUserRepository;
@@ -20,6 +22,10 @@ export class UserService {
 
     async getUserByEmail(email: string): Promise<User | null> {
         return this.userRepository.findByEmail(email);
+    }
+
+    async createUser(userData: Omit<User, 'id' | 'createdAt' | 'updatedAt'>, tx?: Prisma.TransactionClient): Promise<User> {
+        return await this.userRepository.create(userData, tx);
     }
 
     async updateUser(id: string, userData: Partial<User>): Promise<User | null> {
@@ -52,6 +58,13 @@ export class UserService {
             throw new Error(`User with id ${userId} not found`);
         }
         return this.userRepository.update(userId, userData);
+    }
+
+    async updateRefreshToken(
+        userId: string,
+        refreshToken: string | null,
+        tx?: Prisma.TransactionClient): Promise<User | null> {
+            return await this.userRepository.updateRefreshToken(userId, refreshToken, tx);
     }
 
     async updatePassword(userId: string, currentPassword: string, newPassword: string): Promise<User | null> {

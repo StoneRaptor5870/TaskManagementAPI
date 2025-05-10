@@ -2,8 +2,7 @@ import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import { PrismaClient, Role } from "@prisma/client";
 import { AUTH_CONFIG } from "../config/auth";
-import { IUserRepository } from "../infrastructure/repositories/IUserRepository";
-import { UserRepository } from "../infrastructure/repositories/userRepository";
+import { UserService } from "./userService";
 import { RegisterUserDto, LoginUserDto, JwtPayload, AuthTokens, DecodedToken } from "../domain/entities/auth";
 import { TenantService } from "./tenantService";
 import db from "../infrastructure/database/prisma";
@@ -12,12 +11,12 @@ import { StringValue } from 'ms';
 
 export class AuthService {
     private prisma: PrismaClient;
-    private userRepository: IUserRepository;
+    private userService: UserService;
     private tenantService: TenantService;
 
     constructor() {
         this.prisma = db;
-        this.userRepository = new UserRepository();
+        this.userService = new UserService();
         this.tenantService = new TenantService();
     }
 
@@ -25,7 +24,7 @@ export class AuthService {
         userData: RegisterUserDto,
         tenantData: Omit<Tenant, 'id' | 'createdAt' | 'updatedAt'>
     ): Promise<{ tenant: Tenant, tokens: AuthTokens }> {
-        const existingUser = await this.userRepository.findByEmail(userData.email);
+        const existingUser = await this.userService.getUserByEmail(userData.email);
         if (existingUser) {
             throw new Error('User already exists with this email');
         }
@@ -38,7 +37,7 @@ export class AuthService {
             const hashedPassword = await bcrypt.hash(userData.password, AUTH_CONFIG.SALT_ROUNDS);
 
             // Create user with tenant ID within the same transaction
-            const user = await this.userRepository.create({
+            const user = await this.userService.createUser({
                 email: userData.email,
                 password: hashedPassword,
                 name: userData.name,
@@ -53,14 +52,14 @@ export class AuthService {
                 role: user.role
             });
 
-            await this.userRepository.updateRefreshToken(user.id, tokens.refreshToken, tx);
+            await this.userService.updateRefreshToken(user.id, tokens.refreshToken, tx);
             
             return { tenant, tokens };
         });
     }
 
     async login(loginData: LoginUserDto): Promise<AuthTokens> {
-        const user = await this.userRepository.findByEmail(loginData.email);
+        const user = await this.userService.getUserByEmail(loginData.email);
         if (!user) {
             throw new Error('Invalid credentials');
         }
@@ -77,14 +76,14 @@ export class AuthService {
         });
 
         // Save refresh token
-        await this.userRepository.updateRefreshToken(user.id, tokens.refreshToken);
+        await this.userService.updateRefreshToken(user.id, tokens.refreshToken);
 
         return tokens;
     }
 
     async logout(userId: string): Promise<void> {
         // Clear refresh token
-        await this.userRepository.updateRefreshToken(userId, null);
+        await this.userService.updateRefreshToken(userId, null);
     }
 
     async refreshToken(refreshToken: string): Promise<AuthTokens> {
@@ -96,7 +95,7 @@ export class AuthService {
             ) as DecodedToken;
 
             // Find user by ID
-            const user = await this.userRepository.findById(decoded.userId);
+            const user = await this.userService.getUserById(decoded.userId);
             if (!user || user.refreshToken !== refreshToken) {
                 throw new Error('Invalid refresh token');
             }
@@ -109,7 +108,7 @@ export class AuthService {
             });
 
             // Save new refresh token
-            await this.userRepository.updateRefreshToken(user.id, tokens.refreshToken);
+            await this.userService.updateRefreshToken(user.id, tokens.refreshToken);
 
             return tokens;
         } catch (error) {

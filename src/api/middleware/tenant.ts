@@ -56,7 +56,7 @@ export class TenantMiddleware {
             next();
         } catch (error: any) {
             console.error('Tenant middleware error:', error);
-            res.status(500).json({ message: 'Internal server error' });
+            next(error);
         }
     }
 

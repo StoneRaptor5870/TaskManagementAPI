@@ -45,7 +45,7 @@ export class AuthMiddleware {
                 throw new AuthenticationError('Invalid token');
             }
         } catch (error) {
-            res.status(500).json({ message: 'Authentication error' });
+            next(error);
         }
     }
 
@@ -62,7 +62,7 @@ export class AuthMiddleware {
 
                 next();
             } catch (error) {
-                res.status(500).json({ message: 'Authorization error' });
+                next(error);
             }
         };
     };
@@ -97,7 +97,7 @@ export class AuthMiddleware {
 
                 next();
             } catch (error) {
-                res.status(500).json({ message: 'Authorization error' });
+                next(error);
             }
         };
     };

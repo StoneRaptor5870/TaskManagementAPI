@@ -5,6 +5,7 @@ import { TaskRepository } from "../infrastructure/repositories/taskRepository";
 import { EventBus } from "./observers/eventBus";
 import { TaskCreationAttributes, TaskFactoryCreator } from "../domain/factories/taskFactory";
 import { TaskEventPayload } from "./observers/notificationObserver";
+import { DatabaseError, NotFoundError } from '../infrastructure/error/errorTypes';
 
 export class TaskService {
     private taskRepository: ITaskRepository;
@@ -31,6 +32,10 @@ export class TaskService {
         // Use Repository Pattern to persist the task
         const createdTask = await this.taskRepository.create(taskToCreate)
 
+        if (!createdTask) {
+            throw new DatabaseError('Task creation action failed');
+        }
+
         // Use Observer Pattern to notify about task creation
         this.eventBus.publish<TaskEventPayload>('task:created', {
             task: createdTask,
@@ -43,7 +48,7 @@ export class TaskService {
     async updateTask(id: string, taskData: Partial<Task>): Promise<Task> {
         const existingTask = await this.taskRepository.findById(id);
         if (!existingTask) {
-            throw new Error(`Task with id ${id} not found`);
+            throw new NotFoundError(`Task with id ${id} not found`);
         }
 
         // Use Repository Pattern to update the task
@@ -75,7 +80,7 @@ export class TaskService {
     async deleteTask(id: string): Promise<void> {
         const existingTask = await this.taskRepository.findById(id);
         if (!existingTask) {
-            throw new Error(`Task with id ${id} not found`);
+            throw new NotFoundError(`Task with id ${id} not found`);
         }
 
         // Use Observer Pattern to notify about task deletion before it's gone

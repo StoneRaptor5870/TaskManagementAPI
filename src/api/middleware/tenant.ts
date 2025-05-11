@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import { setTenantId } from '../../infrastructure/database/prisma';
-import { UserRepository } from '../../infrastructure/repositories/userRepository';
+import { UserService } from '../../services/userService';
+import { AuthenticationError, AuthorizationError } from '../../infrastructure/error/errorTypes';
 
 declare global {
     namespace Express {
@@ -11,10 +12,10 @@ declare global {
 }
 
 export class TenantMiddleware {
-    private userRepository: UserRepository;
+    private userService: UserService;
 
     constructor() {
-        this.userRepository = new UserRepository();
+        this.userService = new UserService();
     }
 
     /**
@@ -37,16 +38,14 @@ export class TenantMiddleware {
             // Get user from the request (set by auth middleware)
             const userId = req.user?.userId;
             if (!userId) {
-                res.status(401).json({ message: 'Unauthorized: User not authenticated' });
-                return;
+                throw new AuthenticationError('Unauthorized: User not authenticated')
             }
 
             // Get user with tenant
-            const user = await this.userRepository.findById(userId);
+            const user = await this.userService.getUserById(userId);
 
             if (!user?.tenantId) {
-                res.status(403).json({ message: 'Forbidden: No tenant assigned to user' });
-                return;
+                throw new AuthorizationError('Forbidden: No tenant assigned to user')
             }
 
             // Set tenantId for use in controllers
@@ -67,13 +66,11 @@ export class TenantMiddleware {
     restrictToTenant = (tenantId: string) => {
         return (req: Request, res: Response, next: NextFunction): void => {
             if (!req.tenantId) {
-                res.status(403).json({ message: 'Forbidden: Tenant context missing' });
-                return;
+                throw new AuthorizationError('Forbidden: Tenant context missing');
             }
 
             if (req.tenantId !== tenantId) {
-                res.status(403).json({ message: 'Forbidden: Invalid tenant access' });
-                return;
+                throw new AuthorizationError('Forbidden: Invalid tenant access')
             }
 
             next();

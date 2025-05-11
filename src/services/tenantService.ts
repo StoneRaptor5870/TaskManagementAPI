@@ -3,6 +3,7 @@ import { Tenant } from "../domain/entities/tenant";
 import { ITenantRepository } from "../infrastructure/repositories/ITenantRepository";
 import { TenantRepository } from "../infrastructure/repositories/tenantRepository";
 import db from "../infrastructure/database/prisma";
+import { NotFoundError } from "../infrastructure/error/errorTypes";
 
 export class TenantService {
     private prisma: PrismaClient;
@@ -35,7 +36,7 @@ export class TenantService {
     async updateTenant(id: string, taskData: Partial<Tenant>): Promise<Tenant> {
         const existingTenant = await this.tenantRepository.findById(id);
         if (!existingTenant) {
-            throw new Error(`Task with id ${id} not found`);
+            throw new NotFoundError(`Tenant with id ${id} not found`);
         }
 
         const updatedTask = await this.tenantRepository.update(id, taskData);
@@ -45,7 +46,7 @@ export class TenantService {
     async deleteTenant(id: string): Promise<void> {
         const existingTenant = await this.tenantRepository.findById(id);
         if (!existingTenant) {
-            throw new Error(`Task with id ${id} not found`);
+            throw new NotFoundError(`Tenant with id ${id} not found`);
         }
 
         await this.tenantRepository.delete(id);

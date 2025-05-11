@@ -1,5 +1,7 @@
 import { Request, Response } from 'express';
 import { ProjectService } from '../../services/projectService';
+import { catchAsync } from '../../infrastructure/error/errorHandler';
+import { NotFoundError } from '../../infrastructure/error/errorTypes';
 
 export class ProjectController {
     private projectService: ProjectService;
@@ -8,68 +10,39 @@ export class ProjectController {
         this.projectService = new ProjectService();
     }
 
-    getAllProjects = async (req: Request, res: Response): Promise<void> => {
-        try {
-            const projects = await this.projectService.getAllProjects();
-            res.status(200).json(projects);
-        } catch (error: any) {
-            res.status(500).json({ message: error.message });
+    getAllProjects = catchAsync(async (req: Request, res: Response): Promise<void> => {
+        const projects = await this.projectService.getAllProjects();
+        res.status(200).json(projects);
+    });
+
+    getProjectById = catchAsync(async (req: Request, res: Response): Promise<void> => {
+        const { id } = req.params;
+        const project = await this.projectService.getProjectById(id);
+
+        if (!project) {
+            throw new NotFoundError(`Project with id ${id} not found`);
         }
-    }
 
-    getProjectById = async (req: Request, res: Response): Promise<void> => {
-        try {
-            const { id } = req.params;
-            const project = await this.projectService.getProjectById(id);
+        res.status(200).json(project);
+    });
 
-            if (!project) {
-                res.status(404).json({ message: `Project with id ${id} not found` });
-                return;
-            }
+    createProject = catchAsync(async (req: Request, res: Response): Promise<void> => {
+        const project = await this.projectService.createProject(req.body);
+        res.status(201).json(project);
+    });
 
-            res.status(200).json(project);
-        } catch (error: any) {
-            res.status(500).json({ message: error.message });
-        }
-    }
+    updateProject = catchAsync(async (req: Request, res: Response): Promise<void> => {
+        const { id } = req.params;
+        const projectData = req.body;
 
-    createProject = async (req: Request, res: Response): Promise<void> => {
-        try {
-            const project = await this.projectService.createProject(req.body);
-            res.status(201).json(project);
-        } catch (error: any) {
-            res.status(400).json({ message: error.message });
-        }
-    }
+        const updatedProject = await this.projectService.updateProject(id, projectData);
+        res.status(200).json(updatedProject);
+    });
 
-    updateProject = async (req: Request, res: Response): Promise<void> => {
-        try {
-            const { id } = req.params;
-            const projectData = req.body;
-
-            const updatedProject = await this.projectService.updateProject(id, projectData);
-            res.status(200).json(updatedProject);
-        } catch (error: any) {
-            if (error.message.includes('not found')) {
-                res.status(404).json({ message: error.message });
-            } else {
-                res.status(400).json({ message: error.message });
-            }
-        }
-    }
-
-    deleteProject = async (req: Request, res: Response): Promise<void> => {
-        try {
-            const { id } = req.params;
-            await this.projectService.deleteProject(id);
-            res.status(204).send('Projected Deleted');
-        } catch (error: any) {
-            if (error.message.includes('not found')) {
-                res.status(404).json({ message: error.message });
-            } else {
-                res.status(500).json({ message: error.message });
-            }
-        }
-    };
+    deleteProject = catchAsync(async (req: Request, res: Response): Promise<void> => {
+        const { id } = req.params;
+        await this.projectService.deleteProject(id);
+        res.status(204).send('Project Deleted');
+    });
 
 }

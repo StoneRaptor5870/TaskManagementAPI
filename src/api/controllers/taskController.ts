@@ -1,6 +1,8 @@
 import { Request, Response } from 'express';
 import { Priority, Status } from '@prisma/client';
 import { TaskService } from '../../services/taskService';
+import { catchAsync } from '../../infrastructure/error/errorHandler';
+import { NotFoundError, ValidationError } from '../../infrastructure/error/errorTypes';
 
 export class TaskController {
     private taskService: TaskService;
@@ -9,121 +11,75 @@ export class TaskController {
         this.taskService = new TaskService();
     }
 
-    getAllTasks = async (req: Request, res: Response): Promise<void> => {
-        try {
-            const tasks = await this.taskService.getAllTasks();
-            res.status(200).json(tasks);
-        } catch (error: any) {
-            res.status(500).json({ message: error.message });
+    getAllTasks = catchAsync(async (req: Request, res: Response): Promise<void> => {
+        const tasks = await this.taskService.getAllTasks();
+        res.status(200).json(tasks);
+    });
+
+    getTaskById = catchAsync(async (req: Request, res: Response): Promise<void> => {
+        const { id } = req.params;
+        const task = await this.taskService.getTaskById(id);
+
+        if (!task) {
+            throw new NotFoundError(`Task with id ${id} not found`);
         }
-    }
 
-    getTaskById = async (req: Request, res: Response): Promise<void> => {
-        try {
-            const { id } = req.params;
-            const task = await this.taskService.getTaskById(id);
+        res.status(200).json(task);
+    });
 
-            if (!task) {
-                res.status(404).json({ message: `Task with id ${id} not found` });
-                return;
-            }
+    createTask = catchAsync(async (req: Request, res: Response): Promise<void> => {
+        const { title, description, dueDate, priority, status, projectId, assignedToId } = req.body;
 
-            res.status(200).json(task);
-        } catch (error: any) {
-            res.status(500).json({ message: error.message });
+        const task = await this.taskService.createTask(
+            {
+                title,
+                description,
+                status,
+                projectId,
+                assignedToId: assignedToId || null,
+                dueDate: dueDate ? new Date(dueDate) : undefined,
+            },
+            priority || Priority.MEDIUM
+        );
+
+        res.status(201).json(task);
+    });
+
+    updateTask = catchAsync(async (req: Request, res: Response): Promise<void> => {
+        const { id } = req.params;
+        const taskData = req.body;
+
+        if (taskData.dueDate) {
+            taskData.dueDate = new Date(taskData.dueDate);
         }
-    };
 
-    createTask = async (req: Request, res: Response): Promise<void> => {
-        try {
-            const { title, description, dueDate, priority, status, projectId, assignedToId } = req.body;
+        const updatedTask = await this.taskService.updateTask(id, taskData);
+        res.status(200).json(updatedTask);
+    });
 
-            const task = await this.taskService.createTask(
-                {
-                    title,
-                    description,
-                    status,
-                    projectId,
-                    assignedToId: assignedToId || null,
-                    dueDate: dueDate ? new Date(dueDate) : undefined,
-                },
-                priority || Priority.MEDIUM
-            );
+    deleteTask = catchAsync(async (req: Request, res: Response): Promise<void> => {
+        const { id } = req.params;
+        await this.taskService.deleteTask(id);
+        res.status(204).send("Task Deleted");
+    });
 
-            res.status(201).json(task);
-        } catch (error: any) {
-            res.status(400).json({ message: error.message });
+    updateTaskStatus = catchAsync(async (req: Request, res: Response): Promise<void> => {
+        const { id } = req.params;
+        const { status } = req.body;
+
+        if (!Object.values(Status).includes(status)) {
+            throw new ValidationError('Invalid status value');
         }
-    };
 
-    updateTask = async (req: Request, res: Response): Promise<void> => {
-        try {
-            const { id } = req.params;
-            const taskData = req.body;
+        const updatedTask = await this.taskService.updateTaskStatus(id, status);
+        res.status(200).json(updatedTask);
+    });
 
-            if (taskData.dueDate) {
-                taskData.dueDate = new Date(taskData.dueDate);
-            }
+    assignTask = catchAsync(async (req: Request, res: Response): Promise<void> => {
+        const { id } = req.params;
+        const { userId } = req.body;
 
-            const updatedTask = await this.taskService.updateTask(id, taskData);
-            res.status(200).json(updatedTask);
-        } catch (error: any) {
-            if (error.message.includes('not found')) {
-                res.status(404).json({ message: error.message });
-            } else {
-                res.status(400).json({ message: error.message });
-            }
-        }
-    };
-
-    deleteTask = async (req: Request, res: Response): Promise<void> => {
-        try {
-            const { id } = req.params;
-            await this.taskService.deleteTask(id);
-            res.status(204).send();
-        } catch (error: any) {
-            if (error.message.includes('not found')) {
-                res.status(404).json({ message: error.message });
-            } else {
-                res.status(500).json({ message: error.message });
-            }
-        }
-    };
-
-    updateTaskStatus = async (req: Request, res: Response): Promise<void> => {
-        try {
-            const { id } = req.params;
-            const { status } = req.body;
-
-            if (!Object.values(Status).includes(status)) {
-                res.status(400).json({ message: 'Invalid status value' });
-                return;
-            }
-
-            const updatedTask = await this.taskService.updateTaskStatus(id, status);
-            res.status(200).json(updatedTask);
-        } catch (error: any) {
-            if (error.message.includes('not found')) {
-                res.status(404).json({ message: error.message });
-            } else {
-                res.status(400).json({ message: error.message });
-            }
-        }
-    };
-
-    assignTask = async (req: Request, res: Response): Promise<void> => {
-        try {
-            const { id } = req.params;
-            const { userId } = req.body;
-
-            const updatedTask = await this.taskService.assignTask(id, userId);
-            res.status(200).json(updatedTask);
-        } catch (error: any) {
-            if (error.message.includes('not found')) {
-                res.status(404).json({ message: error.message });
-            } else {
-                res.status(400).json({ message: error.message });
-            }
-        }
-    };
+        const updatedTask = await this.taskService.assignTask(id, userId);
+        res.status(200).json(updatedTask);
+    });
 }

@@ -11,6 +11,7 @@ import { tenantMiddleware } from "./api/middleware/tenant";
 import { clsMiddleware } from "./api/middleware/cls";
 import { authMiddleware } from "./api/middleware/auth";
 import { tenantRoutes } from "./api/routes/tenantRoutes";
+import { errorHandler, notFoundHandler } from "./infrastructure/error/errorHandler";
 
 export const app = express();
 
@@ -19,7 +20,7 @@ new NotificationObserver();
 new EmailObserver();
 
 app.use(cors());
-app.use(morgan('dev'));
+app.use(morgan(process.env.NODE_ENV === 'production' ? 'combined' : 'dev'));
 app.use(express.json());
 
 // CLS middleware
@@ -37,10 +38,8 @@ app.get('/health', (req, res) => {
   res.status(200).json({ status: 'OK' });
 });
 
-// Error handling middleware
-app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {
-  console.error(err.stack);
-  res.status(err.status || 500).json({
-    message: err.message || 'Internal Server Error',
-  });
-});
+// Handle 404 errors for undefined routes
+app.use(notFoundHandler);
+
+// Global error handling middleware
+app.use(errorHandler);

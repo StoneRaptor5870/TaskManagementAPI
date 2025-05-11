@@ -1,5 +1,7 @@
 import { Request, Response } from "express";
 import { TenantService } from "../../services/tenantService";
+import { catchAsync } from "../../infrastructure/error/errorHandler";
+import { NotFoundError } from '../../infrastructure/error/errorTypes';
 
 export class TenantController {
     private tenantService: TenantService
@@ -8,65 +10,44 @@ export class TenantController {
         this.tenantService = new TenantService();
     }
 
-    getAllTenant = async (req: Request, res: Response): Promise<void> => {
-        try {
-            const tenants = await this.tenantService.getAllTenants();
-            res.status(200).json(tenants);
-        } catch (error: any) {
-            res.status(500).json({ message: error.message });
+    getAllTenant = catchAsync(async (req: Request, res: Response): Promise<void> => {
+        const tenants = await this.tenantService.getAllTenants();
+        res.status(200).json(tenants);
+    });
+
+    getTenantById = catchAsync(async (req: Request, res: Response): Promise<void> => {
+        const { id } = req.params;
+        const tenant = await this.tenantService.getTenantById(id);
+
+        if (!tenant) {
+            throw new NotFoundError(`Tenant with id ${id} not found`);
         }
-    }
 
-    getTenantById = async (req: Request, res: Response): Promise<void> => {
-        try {
-            const { id } = req.params;
-            const tenant = await this.tenantService.getTenantById(id);
+        res.status(200).json(tenant);
+    });
 
-            if (!tenant) {
-                res.status(404).json({ message: `Tenant with id ${id} not found` });
-                return;
-            }
+    createTenant = catchAsync(async (req: Request, res: Response): Promise<void> => {
+        const { companyName, subDomain } = req.body;
 
-            res.status(200).json(tenant);
-        } catch (error: any) {
-            res.status(500).json({ message: error.message });
-        }
-    }
+        const tenant = await this.tenantService.createTenant({
+            companyName,
+            subDomain
+        });
 
-    createTenant = async (req: Request, res: Response): Promise<void> => {
-        try {
-            const { companyName, subDomain } = req.body;
+        res.status(201).json(tenant);
+    });
 
-            const tenant = await this.tenantService.createTenant({
-                companyName,
-                subDomain
-            });
+    updateTenant = catchAsync(async (req: Request, res: Response): Promise<void> => {
+        const { id } = req.params;
+        const tenantData = req.body;
 
-            res.status(201).json(tenant);
-        } catch (error: any) {
-            res.status(400).json({ message: error.message });
-        }
-    }
+        const updatedTenant = await this.tenantService.updateTenant(id, tenantData);
+        res.status(200).json(updatedTenant);
+    });
 
-    updateTenant = async (req: Request, res: Response): Promise<void> => {
-        try {
-            const { id } = req.params;
-            const tenantData = req.body;
-
-            const updatedTenant = await this.tenantService.updateTenant(id, tenantData);
-            res.status(200).json(updatedTenant);
-        } catch (error: any) {
-            res.status(400).json({ message: error.message });
-        }
-    }
-
-    deleteTenant = async (req: Request, res: Response): Promise<void> => {
-        try {
-            const { id } = req.params;
-            await this.tenantService.deleteTenant(id);
-            res.status(204).json("Tenant deleted.")
-        } catch (error: any) {
-            res.status(500).json({ message: error.message });
-        }
-    }
+    deleteTenant = catchAsync(async (req: Request, res: Response): Promise<void> => {
+        const { id } = req.params;
+        await this.tenantService.deleteTenant(id);
+        res.status(204).json("Tenant deleted.")
+    });
 }

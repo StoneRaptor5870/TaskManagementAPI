@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from "express";
 import { Role } from "@prisma/client";
 import { AuthService } from "../../services/authService";
+import { NotFoundError, AuthenticationError, AuthorizationError } from '../../infrastructure/error/errorTypes';
 
 declare global {
     namespace Express {
@@ -26,15 +27,13 @@ export class AuthMiddleware {
             // Get authorization header
             const authHeader = req.headers.authorization;
             if (!authHeader || !authHeader.startsWith('Bearer ')) {
-                res.status(401).json({ message: 'Unauthorized' });
-                return;
+                throw new AuthenticationError('Unauthorized');
             }
 
             // Get token
             const token = authHeader.split(' ')[1];
             if (!token) {
-                res.status(401).json({ message: 'Unauthorized' });
-                return;
+                throw new AuthenticationError('Unauthorized');
             }
 
             // Verify token
@@ -43,7 +42,7 @@ export class AuthMiddleware {
                 req.user = decoded;
                 next();
             } catch (error) {
-                res.status(401).json({ message: 'Invalid token' });
+                throw new AuthenticationError('Invalid token');
             }
         } catch (error) {
             res.status(500).json({ message: 'Authentication error' });
@@ -54,13 +53,11 @@ export class AuthMiddleware {
         return (req: Request, res: Response, next: NextFunction): void => {
             try {
                 if (!req.user) {
-                    res.status(401).json({ message: 'Unauthorized' });
-                    return;
+                    throw new AuthenticationError('Unauthorized');
                 }
 
                 if (!roles.includes(req.user.role)) {
-                    res.status(403).json({ message: 'Forbidden: Insufficient permissions' });
-                    return;
+                    throw new AuthorizationError('Forbidden: Insufficient permissions')
                 }
 
                 next();
@@ -77,8 +74,7 @@ export class AuthMiddleware {
         return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
             try {
                 if (!req.user) {
-                    res.status(401).json({ message: 'Unauthorized' });
-                    return;
+                    throw new AuthenticationError('Unauthorized');
                 }
 
                 // Admin can access any resource
@@ -91,14 +87,12 @@ export class AuthMiddleware {
                 const ownerId = await idExtractor(req);
 
                 if (!ownerId) {
-                    res.status(404).json({ message: 'Resource not found' });
-                    return;
+                    throw new NotFoundError('Resource not found');
                 }
 
                 // Check if user is the owner
                 if (req.user.userId !== ownerId) {
-                    res.status(403).json({ message: 'Forbidden: You are not the owner of this resource' });
-                    return;
+                    throw new AuthorizationError('Forbidden: You are not the owner of this resource')
                 }
 
                 next();
